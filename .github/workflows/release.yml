@@ -18,8 +18,8 @@ jobs:
         with:
           python-version: "3.12"
       - run: pip install ruff
-      - run: ruff check src/
-      - run: ruff format --check src/
+      - run: ruff check src/ tests/
+      - run: ruff format --check src/ tests/
 
   build-linux:
     name: Build Linux package
@@ -35,11 +35,10 @@ jobs:
           python-version: ${{ matrix.python-version }}
       - run: pip install build
       - run: python -m build
-      - name: Smoke test
+      - name: Run tests
         run: |
-          pip install dist/*.whl
-          matpix list
-          matpix info rotate45 --json
+          pip install dist/*.whl pytest
+          pytest -v
       - uses: actions/upload-artifact@v4
         with:
           name: dist-linux-py${{ matrix.python-version }}
