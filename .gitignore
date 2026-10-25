@@ -1,0 +1,16 @@
+__pycache__/
+*.py[cod]
+*.so
+
+.venv/
+*.egg-info/
+dist/
+build/
+*.egg
+
+*.jpeg
+*.jpg
+*.png
+*.bmp
+*.tiff
+!tests/fixtures/*

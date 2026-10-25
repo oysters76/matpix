@@ -1,0 +1,71 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  lint:
+    name: Lint & Format
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install ruff
+      - run: ruff check src/
+      - run: ruff format --check src/
+
+  test:
+    name: Test (Python ${{ matrix.python-version }})
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: ["3.12", "3.13"]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+      - run: pip install -e .
+      - name: Smoke test — list transforms
+        run: matpix list
+      - name: Smoke test — info
+        run: matpix info rotate45
+      - name: Smoke test — JSON output
+        run: matpix list --json | python -m json.tool > /dev/null
+      - name: Smoke test — transform
+        run: |
+          python -c "
+          from PIL import Image
+          import numpy as np
+          arr = np.zeros((50, 50, 3), dtype=np.uint8)
+          arr[10:40, 10:40] = [255, 0, 0]
+          Image.fromarray(arr).save('test_input.png')
+          "
+          matpix transform test_input.png -t rotate45 --json
+      - name: Smoke test — custom matrix
+        run: matpix transform test_input.png -m "1,0,0,1" -o identity_output.png --json
+      - name: Smoke test — error exit code
+        run: |
+          if matpix transform nonexistent.png -t rotate45 2>/dev/null; then
+            echo "Should have failed" && exit 1
+          fi
+
+  build:
+    name: Build package
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install build
+      - run: python -m build
+      - uses: actions/upload-artifact@v4
+        with:
+          name: dist
+          path: dist/
